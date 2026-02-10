@@ -1,0 +1,34 @@
+[project]
+name = "investment-rag"
+version = "0.1.0"
+description = "Local investment research RAG infrastructure"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "beautifulsoup4>=4.14.3",
+    "chromadb>=1.5.0",
+    "edgartools>=5.15.0",
+    "httpx>=0.28.1",
+    "lxml>=6.0.2",
+    "mcp[cli]>=1.26.0",
+    "openpyxl>=3.1.5",
+    "pandas>=3.0.0",
+    "pypdf>=6.7.0",
+    "rich>=14.3.2",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.uv]
+package = true
+
+[tool.hatch.build.targets.wheel]
+packages = ["src"]
+
+[project.scripts]
+rag-server = "src.server:main"
+fetch-sec = "src.fetch_sec:main"
+fetch-transcripts = "src.fetch_transcripts:main"
+ingest = "src.ingest:main"
