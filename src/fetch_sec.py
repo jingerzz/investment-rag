@@ -96,19 +96,44 @@ def main():
     else:
         ticker = Prompt.ask("\nEnter ticker symbol").upper()
 
+    # Optional filter by form type (e.g. 10-K,10-Q)
+    form_filter_raw = Prompt.ask(
+        "\nFilter by form type(s)? (e.g. 10-K,10-Q) [leave blank for all]",
+        default="",
+    ).strip()
+    form_filters: set[str] | None = None
+    if form_filter_raw:
+        form_filters = {
+            part.strip().upper()
+            for part in form_filter_raw.split(",")
+            if part.strip()
+        }
+
     console.print(f"\nFetching filings for [bold]{ticker}[/bold]...")
 
     company = Company(ticker)
     filings = company.get_filings()
 
-    # Get recent filings (up to 20) — use integer indexing to avoid
-    # edgartools slice bug (ChunkedArray.as_py() AttributeError)
+    # Get recent filings (up to 20), optionally filtered by form type.
+    # Use integer indexing to avoid edgartools slice bug (ChunkedArray.as_py()).
     filing_list = []
-    for i in range(min(20, len(filings))):
-        filing_list.append(filings[i])
+    max_to_show = 20
+    for i in range(len(filings)):
+        f = filings[i]
+        if form_filters and f.form.upper() not in form_filters:
+            continue
+        filing_list.append(f)
+        if len(filing_list) >= max_to_show:
+            break
 
     if not filing_list:
-        console.print("[red]No filings found.[/red]")
+        if form_filters:
+            console.print(
+                f"[red]No filings found matching form type(s): "
+                f"{', '.join(sorted(form_filters))}.[/red]"
+            )
+        else:
+            console.print("[red]No filings found.[/red]")
         return
 
     # Display table

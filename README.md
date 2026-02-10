@@ -24,7 +24,7 @@ Claude Desktop ←(MCP/stdio)→ server.py ←→ ChromaDB (local, embedded)
 ```
 investment-rag/
 ├── pyproject.toml              # Dependencies + script entry points
-├── config.json                 # SEC EDGAR user-agent, FMP API key
+├── config.example.json         # Template; copy/edit to create config.json
 ├── src/
 │   ├── server.py               # MCP server (8 tools)
 │   ├── embeddings.py           # Ollama embedding wrapper for ChromaDB
@@ -38,24 +38,24 @@ investment-rag/
 │       ├── html_parser.py      # BeautifulSoup for SEC HTML filings
 │       ├── csv_parser.py       # pandas → natural language sentences
 │       └── text_parser.py      # Plain text with ticker/quarter detection
-├── data/
+├── data/                       # Created at runtime (not committed)
 │   ├── drop/                   # Put files here → run ingest → they get indexed
 │   ├── sec_filings/            # Auto-downloaded EDGAR filings (by ticker)
 │   ├── transcripts/            # Auto-downloaded earnings transcripts (by ticker)
 │   └── processed/              # Files moved here after ingestion
-└── chromadb_data/              # Vector DB storage (auto-created)
+└── chromadb_data/              # Vector DB storage (auto-created, not committed)
 ```
 
 ## Prerequisites
 
 - **Python 3.12+** managed by [uv](https://docs.astral.sh/uv/)
 - **Ollama** running locally with `nomic-embed-text` pulled (`ollama pull nomic-embed-text`)
-- **FMP API key** (free tier, 250 req/day) from https://financialmodelingprep.com/
+- **(Optional)** **FMP API key** from https://financialmodelingprep.com/ if you want to use the transcripts tools (availability depends on your FMP plan)
 
 ## Setup
 
 ```bash
-cd C:\Users\jxie0\investment-rag
+cd investment-rag
 
 # Install dependencies (handled automatically by uv on first run)
 uv sync
@@ -63,7 +63,7 @@ uv sync
 # First run — sets up SEC user-agent in config.json
 uv run fetch-sec
 
-# First run — sets up FMP API key in config.json (already configured)
+# (Optional) First run — sets up FMP API key in config.json if you have FMP access
 uv run fetch-transcripts
 ```
 
@@ -77,6 +77,12 @@ uv run fetch-sec AAPL      # Skip the ticker prompt
 ```
 
 Displays a table of recent filings, lets you select which to download, and optionally indexes them into the RAG.
+
+On each run you can also [optionally] filter by form type before the table is shown, e.g.:
+
+- `10-K` to see only 10-Ks
+- `10-Q` to see only 10-Qs
+- `10-K,10-Q` to see both
 
 ### Fetch Earnings Transcripts
 
@@ -96,6 +102,18 @@ uv run ingest
 Processes any supported files placed in `data/drop/`. Walks through each file interactively — auto-detects ticker from filename, asks for document type, indexes into ChromaDB, then moves files to `data/processed/`.
 
 **Supported file types:** PDF, HTML, CSV, XLSX, XLS, TXT, MD
+
+### Manage Indexed Documents (List & Delete)
+
+```bash
+uv run manage-docs
+```
+
+Lets you:
+
+- List documents currently indexed in `sec_filings`, `transcripts`, or `market_data`
+- See the `source_file`, ticker, and chunk count for each
+- Interactively select one or more documents to delete (removes all associated chunks)
 
 ## MCP Server (Claude Desktop Integration)
 
@@ -129,7 +147,9 @@ The MCP server is configured in Claude Desktop's config at `%APPDATA%\Claude\cla
 
 ## Config File
 
-`config.json` stores API credentials (created on first CLI run):
+Copy `config.example.json` to `config.json`, then fill in your own values, or let the first CLI runs create/update it for you.
+
+`config.json` stores API credentials:
 
 ```json
 {
